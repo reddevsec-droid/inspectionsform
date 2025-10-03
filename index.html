@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+      <link rel="stylesheet" href="style.css">
+    <title>Rapport d'inspection</title>
+  </head>
+  <body>
+    <main>
+      <img src="pdc_logo.jpg" alt="Logo Palais des congrès de Montréal" class="logo">
+      <h1>Rapport d'inspection</h1>
+      <div id="formContainer">
+      <form>
+        <label>Date de l'inspection: <input type="date" id="dateInspection"></label>
+        <label>Inspecteur: <input type="text" id="responsableInspection"></label>
+        <label>Événement: <input type="text" id="evenementInspection"></label>
+        <label style="display:flex;align-items:center;gap:8px;margin-top:16px;">
+          <input type="checkbox" id="rienASignaler">
+          Rien à signaler
+  </label>
+        <button type="button" id="btnNonConforme" style="margin-top:18px;">Élément non conforme</button>
+        <div id="nonConformeFieldsContainer"></div>
+  </form>
+  <button type="button" id="printBtn" style="margin:32px auto 0 auto;display:block;">Imprimer</button>
+  <!-- Plus de jsPDF -->
+      <script>
+        // Ajout dynamique de sections "Élément non conforme"
+        const btn = document.getElementById('btnNonConforme');
+        const container = document.getElementById('nonConformeFieldsContainer');
+        let nonConformeIndex = 0;
+        btn.addEventListener('click', () => {
+          nonConformeIndex++;
+          const section = document.createElement('section');
+          section.className = 'nonConformeSection';
+          section.style.marginTop = '18px';
+          section.innerHTML = `
+            <div style="display:flex;align-items:center;gap:8px;">
+              <label style="flex:1;">Commentaire :
+                <textarea rows="3" style="width:100%;margin-top:6px;" name="commentaireNonConforme${nonConformeIndex}"></textarea>
+              </label>
+              <button type="button" class="btnSupprimerNonConforme" title="Supprimer cette section" style="height:32px;margin-top:10px;">🗑️</button>
+            </div>
+            <label style="display:block;margin-top:12px;">Photo :
+              <input type="file" accept="image/*" capture="environment" style="margin-top:6px;" name="photoNonConforme${nonConformeIndex}">
+            </label>
+            <img src="" alt="Prévisualisation" style="display:none;margin-top:10px;max-width:100%;border-radius:6px;box-shadow:0 1px 4px #0001;" />
+          `;
+          // Bouton suppression
+          section.querySelector('.btnSupprimerNonConforme').addEventListener('click', () => {
+            section.remove();
+          });
+          // Gestion de la prévisualisation pour cette section
+          const fileInput = section.querySelector('input[type="file"]');
+          const preview = section.querySelector('img');
+          fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file && file.type.startsWith('image/')) {
+              const processImage = (dataUrl) => {
+                preview.src = dataUrl;
+                preview.style.display = 'block';
+              };
+              if (file.size > 1024 * 1024) { // 1 Mo
+                // Redimensionner l'image
+                const img = new Image();
+                const reader = new FileReader();
+                reader.onload = ev => {
+                  img.onload = () => {
+                    const maxDim = 1200;
+                    let { width, height } = img;
+                    if (width > maxDim || height > maxDim) {
+                      if (width > height) {
+                        height = Math.round(height * maxDim / width);
+                        width = maxDim;
+                      } else {
+                        width = Math.round(width * maxDim / height);
+                        height = maxDim;
+                      }
+                    }
+                    const canvas = document.createElement('canvas');
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+                    const resizedDataUrl = canvas.toDataURL('image/jpeg', 0.8);
+                    processImage(resizedDataUrl);
+                  };
+                  img.onerror = () => {
+                    alert('Erreur lors du traitement de la photo.');
+                    fileInput.value = '';
+                  };
+                  img.src = ev.target.result;
+                };
+                reader.readAsDataURL(file);
+              } else {
+                const reader = new FileReader();
+                reader.onload = ev => processImage(ev.target.result);
+                reader.readAsDataURL(file);
+              }
+            } else {
+              preview.src = '';
+              preview.style.display = 'none';
+            }
+          });
+          container.appendChild(section);
+        });
+
+        // Impression du formulaire
+        document.getElementById('printBtn').addEventListener('click', function() {
+          window.print();
+        });
+      </script>
+      </div>
+    </main>
+  </body>
+</html>
